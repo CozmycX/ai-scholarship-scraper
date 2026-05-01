@@ -2,31 +2,54 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import json
+import csv
 
 # Setup driver
 driver = webdriver.Chrome()
 
-# Target website (example)
-driver.get("https://www.bold.org/scholarships/")
-
-time.sleep(5)
-
-scholarships = []
-
-elements = driver.find_elements(By.CLASS_NAME, "ScholarshipCard")
-
 keywords = ["cybersecurity", "technology", "minority", "financial"]
 
-for el in elements:
-    title = el.text.lower()
+results = []
 
-    if any(keyword in title for keyword in keywords):
-        scholarships.append(title)
+def scrape_bold():
+    print("Scraping Bold.org...")
+    driver.get("https://www.bold.org/scholarships/")
+    time.sleep(5)
 
-# Save to JSON
-with open("scholarships.json", "w") as f:
-    json.dump(scholarships, f, indent=4)
+    try:
+        cards = driver.find_elements(By.CLASS_NAME, "ScholarshipCard")
 
-print("Scraping complete. Saved to scholarships.json")
+        for card in cards:
+            text = card.text.lower()
 
+            if any(keyword in text for keyword in keywords):
+                results.append({
+                    "source": "Bold.org",
+                    "description": text
+                })
+    except Exception as e:
+        print("Error scraping Bold:", e)
+
+
+def save_json():
+    with open("scholarships.json", "w") as f:
+        json.dump(results, f, indent=4)
+
+
+def save_csv():
+    with open("scholarships.csv", "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["source", "description"])
+        writer.writeheader()
+        writer.writerows(results)
+
+
+def main():
+    scrape_bold()
+    save_json()
+    save_csv()
+
+    print(f"Saved {len(results)} scholarships.")
+
+
+main()
 driver.quit()
